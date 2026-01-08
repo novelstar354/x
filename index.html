@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>カラフルチャットルーム</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<style>
+body {
+  font-family: sans-serif;
+  margin:0;
+  padding:0;
+  background:#f0f0f0;
+}
+header {
+  background:#4e73df;
+  color:#fff;
+  padding:10px;
+  text-align:center;
+}
+.container {
+  max-width:600px;
+  margin: auto;
+  padding:10px;
+}
+#chat {
+  background:#fff;
+  height:400px;
+  overflow-y: scroll;
+  border-radius:8px;
+  padding:10px;
+  margin-bottom:10px;
+}
+.message {
+  display:flex;
+  align-items:center;
+  margin-bottom:5px;
+}
+.avatar {
+  width:30px;
+  height:30px;
+  border-radius:50%;
+  display:inline-block;
+  margin-right:10px;
+}
+.msg-text {
+  background:#eee;
+  padding:5px 10px;
+  border-radius:10px;
+  max-width:70%;
+  word-wrap: break-word;
+}
+input, button {
+  padding:10px;
+  font-size:16px;
+  margin:5px 0;
+  width:100%;
+  box-sizing:border-box;
+}
+button {
+  background:#4e73df;
+  color:#fff;
+  border:none;
+  cursor:pointer;
+  border-radius:5px;
+}
+button:hover { background:#2e59d9; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>カラフルチャットルーム</h1>
+</header>
+
+<div class="container">
+  <input id="username" placeholder="名前を入力">
+  <input id="room" placeholder="ルーム名を入力">
+  <button onclick="joinRoom()">ルーム参加</button>
+
+  <div id="chat"></div>
+
+  <input id="message" placeholder="メッセージを入力">
+  <button onclick="sendMessage()">送信</button>
+</div>
+
+<script>
+// Firebase 設定
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+  databaseURL: "https://YOUR_PROJECT_ID.firebaseio.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT_ID.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+let currentRoom = "";
+let userColor = "#"+Math.floor(Math.random()*16777215).toString(16);
+
+// ルーム参加
+function joinRoom() {
+  const room = document.getElementById('room').value.trim();
+  const name = document.getElementById('username').value.trim();
+  if(!room || !name){ alert("名前とルーム名を入力してください"); return; }
+  currentRoom = room;
+  document.getElementById('chat').innerHTML = "";
+  
+  // ルームごとに背景色変化
+  const colors = ["#fff","#ffe6e6","#e6ffe6","#e6e6ff","#fff0e6"];
+  document.getElementById('chat').style.background = colors[room.length % colors.length];
+
+  // メッセージ受信
+  db.ref('rooms/' + currentRoom).on('child_added', (snapshot) => {
+    const data = snapshot.val();
+    const div = document.createElement('div');
+    div.classList.add('message');
+
+    const avatar = document.createElement('div');
+    avatar.classList.add('avatar');
+    avatar.style.background = data.color;
+    div.appendChild(avatar);
+
+    const msg = document.createElement('div');
+    msg.classList.add('msg-text');
+    msg.textContent = data.name + ": " + data.text;
+    div.appendChild(msg);
+
+    const chatDiv = document.getElementById('chat');
+    chatDiv.appendChild(div);
+    chatDiv.scrollTop = chatDiv.scrollHeight;
+  });
+}
+
+// メッセージ送信
+function sendMessage() {
+  const msg = document.getElementById('message').value.trim();
+  const name = document.getElementById('username').value.trim();
+  if(!msg || !currentRoom){ alert("ルームに参加してください"); return; }
+  db.ref('rooms/' + currentRoom).push({name: name, text: msg, color: userColor});
+  document.getElementById('message').value = "";
+}
+</script>
+
+</body>
+</html>
